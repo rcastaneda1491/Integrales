@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integración y Gráfica Interactiva</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding-right: 20px;
+            padding-left: 20px;
+            padding-bottom: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #c2c2d4;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        form input,
+        form button,
+        form select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        form button {
+            background-color: #3c4992;
+            color: white;
+            cursor: pointer;
+        }
+
+        form button:hover {
+            background-color: #2e376d;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+        }
+
+        h2 {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 90%;
+            }
+
+            form input,
+            form button {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Integrales definidas e indefinidas</h1>
+    <div class="container">
+        <form id="integralForm">
+            <label for="funcion">Introduce la función en términos de x (por ejemplo, x**2 + sin(x)):</label>
+            <input type="text" id="funcion" name="funcion" required>
+
+            <label for="tipo_integral">Tipo de Integral:</label>
+            <select id="tipo_integral" name="tipo_integral" required>
+                <option value="definida">Definida</option>
+                <option value="indefinida">Indefinida</option>
+            </select>
+
+            <div id="limites">
+                <label for="a">Límite inferior:</label>
+                <input type="text" id="a" name="a">
+
+                <label for="b">Límite superior:</label>
+                <input type="text" id="b" name="b">
+            </div>
+
+            <button type="submit">Calcular</button>
+        </form>
+
+        <div id="plotContainer">
+
+        </div>
+        <script>
+            $(document).ready(function () {
+                //Mostrar límites dependiendo el tipo de integral
+                $('#tipo_integral').change(function () {
+                    if ($(this).val() == 'definida') {
+                        $('#limites').show();
+                    } else {
+                        $('#limites').hide();
+                    }
+                });
+
+                $("#integralForm").submit(function (event) {
+                    event.preventDefault();
+                    //Vaciar div que muestra resultado
+                    $('#plotContainer').empty();
+
+                    //Ejecutar petición a API en python
+                    $.ajax({
+                        url: '/plot',
+                        type: 'POST',
+                        data: $(this).serialize(),
+                        success: function (response) {
+
+                            if (response.grafico == null) {
+                                //Mostrar solo integral indefinida
+                                $('#plotContainer').html('<p style="text-align: center;">' + response.resultado + '</p>');
+                            } else {
+                                //Generar gráfica
+                                var config = {
+                                    modeBarButtonsToRemove: ['zoom2d', 'resetScale2d', 'autoScale2d'],
+                                    displaylogo: false
+                                };
+                                var graficoJSON = JSON.parse(response.grafico);
+                                Plotly.newPlot('plotContainer', graficoJSON.data, graficoJSON.layout, config);
+                            }
+                        }
+                    });
+                });
+            });
+        </script>
+    </div>
+</body>
+
+</html>
