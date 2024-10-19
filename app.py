@@ -7,36 +7,45 @@ from flask import Flask, render_template, request, jsonify
 app = Flask(__name__)
 x = sp.Symbol('x')
 
-def integrar_indefinida(funcion):
-    integral_indefinida = sp.integrate(funcion, x)
-    return str(integral_indefinida) + ' + C'
+def esImpar(funcion):
+    return sp.simplify(funcion.subs(x, -x)) == -funcion
 
 #Integrales definidas
-def generar_grafico(funcion, a, b):
-    
-    integral_definida = sp.integrate(funcion, (x, a, b))
+def generarGrafico(funcion, a, b):
+    if esImpar(funcion):
+        integral_definida = sp.integrate(sp.Abs(funcion), (x, a, b))
+    else:
+        integral_definida = sp.integrate(funcion, (x, a, b))
+
     funcion_numerica = sp.lambdify(x, funcion, "numpy")
 
-    #Rango de valores
-    x_vals = np.linspace(float(a), float(b), 400)
+    #Calcular espacio para ejes x y
+    x_vals = np.linspace(float(a) - 1, float(b) + 1, 400)
     y_vals = funcion_numerica(x_vals)
+    y_min = min(y_vals) - 1
+    y_max = max(y_vals) + 1
 
-    #Generar g´rafica
     fig = go.Figure()
 
-    #Añadir línea de la función
+    #Dibujar función
     fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', name=f'y = {funcion}'))
 
-    #Añadir area a la gráfica
+    #Dibujar área
     fig.add_trace(go.Scatter(x=x_vals, y=y_vals, fill='tozeroy', mode='none',
-                             fillcolor='rgba(0, 236, 245, 71)', name=f'Área = {integral_definida}'))
+                             fillcolor='rgba(0,255,0,0.3)', name=f'Área = {integral_definida}'))
 
     #Configuración
     fig.update_layout(
-        title=f'Resultado de la integral de: {funcion}',
+        title=f'Gráfica de la función: {funcion}',
         xaxis_title='x',
         yaxis_title='f(x)',
-        hovermode="x unified"
+        hovermode="x unified",
+        shapes=[
+            #Dibujar je x
+            dict(type="line", x0=float(a) - 1, x1=float(b) + 1, y0=0, y1=0, line=dict(color="black", width=2)),
+            #Dibujar eje y
+            dict(type="line", x0=0, x1=0, y0=y_min, y1=y_max, line=dict(color="black", width=2)),
+        ]
     )
 
     return fig.to_json(), integral_definida
@@ -45,6 +54,7 @@ def generar_grafico(funcion, a, b):
 def index():
     return render_template('index.html')
 
+#Endpoint que retorna gráfica o integral indefinida
 @app.route('/plot', methods=['POST'])
 def plot_post():
     funcion_str_global = request.form['funcion']
@@ -53,22 +63,21 @@ def plot_post():
     tipo_integral = request.form.get('tipo_integral')
 
     if tipo_integral == 'definida':
-        #Integral definida
         a_global = float(request.form['a'])
         b_global = float(request.form['b'])
-        grafico_json, area = generar_grafico(funcion, a_global, b_global)
+        grafico_json, area = generarGrafico(funcion, a_global, b_global)
 
+        #Integral definida
         return jsonify({
             'grafico': grafico_json,
-            'resultado': f'Resultado de función: {funcion}'
+            'resultado': f''
         })
     else:
         #Integral indefinida
-        integral_indefinida = integrar_indefinida(funcion)
-
+        integral_indefinida = sp.integrate(funcion, x)
         return jsonify({
             'grafico': None,
-            'resultado': f'Integral indefinida: {integral_indefinida}'
+            'resultado': f'Integral indefinida: {integral_indefinida} + C'
         })
 
 if __name__ == '__main__':
