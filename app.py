@@ -32,7 +32,7 @@ def generarGrafico(funcion, a, b):
 
     #Dibujar área
     fig.add_trace(go.Scatter(x=x_vals, y=y_vals, fill='tozeroy', mode='none',
-                             fillcolor='rgba(0,255,0,0.3)', name=f'Área = {integral_definida}'))
+                             fillcolor='rgba(0, 236, 245, 71)', name=f'Área = {integral_definida}'))
 
     #Configuración
     fig.update_layout(
